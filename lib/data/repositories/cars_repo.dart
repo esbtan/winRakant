@@ -11,13 +11,13 @@ class CarsRepo {
         .select()
         .order('created_at', ascending: false);
 
-    final cars = (data as List).map((e) => Car.fromMap(e)).toList();
-    return cars;
+    return (data as List).map((e) => Car.fromMap(e)).toList();
   }
 
   Future<void> createCar({
     required String nickname,
     String? plateNumber,
+    required String vehicleType,
     String? make,
     String? model,
     String? color,
@@ -26,13 +26,13 @@ class CarsRepo {
     final uid = source.client.auth.currentUser?.id;
     if (uid == null) throw Exception('Not logged in');
 
-    // 1) insert car
     final inserted = await source.client
         .from('cars')
         .insert({
           'created_by': uid,
           'nickname': nickname,
           'plate_number': plateNumber,
+          'vehicle_type': vehicleType,
           'make': make,
           'model': model,
           'color': color,
@@ -43,12 +43,33 @@ class CarsRepo {
 
     final carId = inserted['id'] as String;
 
-    // 2) add owner membership
     await source.client.from('car_members').insert({
       'car_id': carId,
       'user_id': uid,
       'role': 'owner',
       'added_by': uid,
     });
+  }
+
+  // ✅ UPDATE
+  Future<void> updateCar({
+    required String carId,
+    required String nickname,
+    String? plateNumber,
+    required String vehicleType,
+  }) async {
+    await source.client
+        .from('cars')
+        .update({
+          'nickname': nickname,
+          'plate_number': plateNumber,
+          'vehicle_type': vehicleType,
+        })
+        .eq('id', carId);
+  }
+
+  // ✅ DELETE
+  Future<void> deleteCar(String carId) async {
+    await source.client.from('cars').delete().eq('id', carId);
   }
 }
